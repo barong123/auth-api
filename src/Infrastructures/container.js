@@ -1,26 +1,28 @@
 /* istanbul ignore file */
 
-const { createContainer } = require("instances-container");
+const { createContainer } = require('instances-container');
 
 // external agency
-const { nanoid } = require("nanoid");
-const bcrypt = require("bcrypt");
-const Jwt = require("@hapi/jwt");
-const pool = require("./database/postgres/pool");
+const { nanoid } = require('nanoid');
+const bcrypt = require('bcrypt');
+const Jwt = require('@hapi/jwt');
+const pool = require('./database/postgres/pool');
 
 // service (repository, helper, manager, etc)
-const UserRepositoryPostgres = require("./repository/UserRepositoryPostgres");
-const TokenRepositoryPostgres = require("./repository/TokenRepositoryPostgres");
-const BcryptPasswordHash = require("./security/BcryptPasswordHash");
-const JwtTokenManager = require("./security/JwtTokenManager");
+const UserRepository = require('../Domains/users/UserRepository');
+const PasswordHash = require('../Applications/security/PasswordHash');
+const UserRepositoryPostgres = require('./repository/UserRepositoryPostgres');
+const BcryptPasswordHash = require('./security/BcryptPasswordHash');
 
 // use case
-const AddUserUseCase = require("../Applications/use_case/AddUserUseCase");
-const AddAuthenticationUseCase = require("../Applications/use_case/AddAuthenticationUseCase");
-const UserRepository = require("../Domains/users/UserRepository");
-const TokenRepository = require("../Domains/token/TokenRepository");
-const PasswordHash = require("../Applications/security/PasswordHash");
-const TokenManager = require("../Applications/security/TokenManager");
+const AddUserUseCase = require('../Applications/use_case/AddUserUseCase');
+const AuthenticationTokenManager = require('../Applications/security/AuthenticationTokenManager');
+const JwtTokenManager = require('./security/JwtTokenManager');
+const LoginUserUseCase = require('../Applications/use_case/LoginUserUseCase');
+const AuthenticationRepository = require('../Domains/authentications/AuthenticationRepository');
+const AuthenticationRepositoryPostgres = require('./repository/AuthenticationRepositoryPostgres');
+const LogoutUserUseCase = require('../Applications/use_case/LogoutUserUseCase');
+const RefreshAuthenticationUseCase = require('../Applications/use_case/RefreshAuthenticationUseCase');
 
 // creating container
 const container = createContainer();
@@ -38,15 +40,12 @@ container.register([
         {
           concrete: nanoid,
         },
-        {
-          concrete: bcrypt,
-        },
       ],
     },
   },
   {
-    key: TokenRepository.name,
-    Class: TokenRepositoryPostgres,
+    key: AuthenticationRepository.name,
+    Class: AuthenticationRepositoryPostgres,
     parameter: {
       dependencies: [
         {
@@ -67,12 +66,12 @@ container.register([
     },
   },
   {
-    key: TokenManager.name,
+    key: AuthenticationTokenManager.name,
     Class: JwtTokenManager,
     parameter: {
       dependencies: [
         {
-          concrete: Jwt,
+          concrete: Jwt.token,
         },
       ],
     },
@@ -85,36 +84,70 @@ container.register([
     key: AddUserUseCase.name,
     Class: AddUserUseCase,
     parameter: {
-      injectType: "destructuring",
+      injectType: 'destructuring',
       dependencies: [
         {
-          name: "userRepository",
+          name: 'userRepository',
           internal: UserRepository.name,
         },
         {
-          name: "passwordHash",
+          name: 'passwordHash',
           internal: PasswordHash.name,
         },
       ],
     },
   },
   {
-    key: AddAuthenticationUseCase.name,
-    Class: AddAuthenticationUseCase,
+    key: LoginUserUseCase.name,
+    Class: LoginUserUseCase,
     parameter: {
-      injectType: "destructuring",
+      injectType: 'destructuring',
       dependencies: [
         {
-          name: "tokenRepository",
-          internal: TokenRepository.name,
-        },
-        {
-          name: "userRepository",
+          name: 'userRepository',
           internal: UserRepository.name,
         },
         {
-          name: "tokenManager",
-          internal: TokenManager.name,
+          name: 'authenticationRepository',
+          internal: AuthenticationRepository.name,
+        },
+        {
+          name: 'authenticationTokenManager',
+          internal: AuthenticationTokenManager.name,
+        },
+        {
+          name: 'passwordHash',
+          internal: PasswordHash.name,
+        },
+      ],
+    },
+  },
+  {
+    key: LogoutUserUseCase.name,
+    Class: LogoutUserUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'authenticationRepository',
+          internal: AuthenticationRepository.name,
+        },
+      ],
+    },
+  },
+  {
+    key: RefreshAuthenticationUseCase.name,
+    Class: RefreshAuthenticationUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'authenticationRepository',
+          internal: AuthenticationRepository.name,
+        },
+        {
+          name: 'authenticationTokenManager',
+          internal: AuthenticationTokenManager.name,
         },
       ],
     },

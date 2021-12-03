@@ -1,26 +1,24 @@
-const InvariantError = require("../../Commons/exceptions/InvariantError");
-const AuthenticationError = require("../../Commons/exceptions/AuthenticationError");
-const RegisteredUser = require("../../Domains/users/entities/RegisteredUser");
-const UserRepository = require("../../Domains/users/UserRepository");
+const InvariantError = require('../../Commons/exceptions/InvariantError');
+const RegisteredUser = require('../../Domains/users/entities/RegisteredUser');
+const UserRepository = require('../../Domains/users/UserRepository');
 
 class UserRepositoryPostgres extends UserRepository {
-  constructor(pool, idGenerator, passwordHash) {
+  constructor(pool, idGenerator) {
     super();
     this._pool = pool;
     this._idGenerator = idGenerator;
-    this._passwordHash = passwordHash;
   }
 
   async verifyAvailableUsername(username) {
     const query = {
-      text: "SELECT username FROM users WHERE username = $1",
+      text: 'SELECT username FROM users WHERE username = $1',
       values: [username],
     };
 
     const result = await this._pool.query(query);
 
     if (result.rowCount) {
-      throw new InvariantError("username tidak tersedia");
+      throw new InvariantError('username tidak tersedia');
     }
   }
 
@@ -29,7 +27,7 @@ class UserRepositoryPostgres extends UserRepository {
     const id = `user-${this._idGenerator()}`;
 
     const query = {
-      text: "INSERT INTO users VALUES($1, $2, $3, $4) RETURNING id, username, fullname",
+      text: 'INSERT INTO users VALUES($1, $2, $3, $4) RETURNING id, username, fullname',
       values: [id, username, password, fullname],
     };
 
@@ -38,31 +36,19 @@ class UserRepositoryPostgres extends UserRepository {
     return new RegisteredUser({ ...result.rows[0] });
   }
 
-  async verifyUserCredential(username, password) {
-    if (typeof username !== "string" || typeof password !== "string") {
-      throw new InvariantError("tipe data login tidak sesuai");
-    }
-
+  async getPasswordByUsername(username) {
     const query = {
-      text: "SELECT id, password FROM users WHERE username = $1",
+      text: 'SELECT password FROM users WHERE username = $1',
       values: [username],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rowCount) {
-      throw new AuthenticationError("Kredensial yang Anda berikan salah");
+      throw new InvariantError('username tidak ditemukan');
     }
 
-    const { id, password: hashedPassword } = result.rows[0];
-
-    const match = await this._passwordHash.compare(password, hashedPassword);
-
-    if (!match) {
-      throw new AuthenticationError("Kredensial yang Anda berikan salah");
-    }
-
-    return id;
+    return result.rows[0].password;
   }
 }
 

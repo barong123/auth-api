@@ -1,7 +1,9 @@
 {
   "env": {
+    "commonjs": true,
     "es2021": true,
-    "node": true
+    "node": true,
+    "jest": true
   },
   "extends": ["airbnb-base"],
   "parserOptions": {
@@ -17,6 +19,8 @@
     "no-undef": "off",
     "no-unused-vars": "off",
     "implicit-arrow-linebreak": "off",
-    "function-paren-newline": "off"
+    "function-paren-newline": "off",
+    "object-curly-newline": "off",
+    "no-await-in-loop": "off"
   }
 }
